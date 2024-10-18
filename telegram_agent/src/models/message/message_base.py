@@ -1,4 +1,5 @@
 # custom_message_processor.py
+"""
 from telegram_bot.database import get_session
 from telegram_bot.utils import store_message
 from telegram_bot.models import MessageContext
@@ -43,15 +44,26 @@ async def custom_message_processor(client: Client, context: MessageContext):
 
     # custom_message_processor.py
 
+"""
 
-from telegram_bot.database import get_session
-from telegram_bot.utils import store_message
-from telegram_bot.models import MessageContext
+import asyncio
+from telegram_agent.src.telegram.database import get_session
+from telegram_agent.src.telegram.utils import store_message
+from telegram_agent.src.models.models import MessageContext
+from telegram_agent.src.telegram.config import (
+    IDEA_LIST_THREAD_ID,
+    IDEAS_SUPERGROUP_CHAT_ID,
+)
 from pyrogram import Client
 
-from telegram_bot.pipeline import Pipeline, PipelineStep
-from telegram_bot.filters import MessageFilter, ChatFilter
-from telegram_bot.actions import SendMessageAction, ForwardMessageAction
+from telegram_agent.src.pipeline.pipeline_base import Pipeline, PipelineStep
+from telegram_agent.src.pipeline.filters import MessageFilter, ChatFilter
+from telegram_agent.src.pipeline.actions import (
+    SendMessageAction,
+    ForwardMessageAction,
+    CreateChatAction,
+)
+
 
 # Define constants (replace with actual values)
 ADMIN_CHAT_ID = 123456789  # Replace with your admin chat ID
@@ -107,3 +119,36 @@ async def custom_message_processor(client: Client, context: MessageContext):
     # Create and process the pipeline
     pipeline = Pipeline(steps=pipeline_steps)
     await pipeline.process(client, context)
+
+
+async def new_idea_custom_message_processor(client: Client, context: MessageContext):
+    """
+    Custom message processor that filters messages and performs actions.
+
+    Args:
+        client (Client): The Pyrogram client.
+        context (MessageContext): The message context.
+    """
+    # Store the message asynchronously
+    loop = asyncio.get_running_loop()
+    with get_session() as session:
+        await loop.run_in_executor(None, store_message, session, context)
+
+    # Define filters
+    is_in_ideas_supergroup = ChatFilter(
+        lambda ctx: ctx.chat_id == IDEAS_SUPERGROUP_CHAT_ID
+    )
+    is_in_idea_list_thread = MessageFilter(
+        lambda ctx: ctx.message_thread_id == IDEA_LIST_THREAD_ID
+    )
+
+    # Check if message meets filter criteria
+    if is_in_ideas_supergroup(context) and is_in_idea_list_thread(context):
+        # Define the action
+        create_chat_action = CreateChatAction(
+            title=context.text or "New Supergroup",
+            privacy="private",  # or 'public' if desired
+        )
+
+        # Execute the action
+        await create_chat_action.execute(client, context)

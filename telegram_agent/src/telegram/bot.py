@@ -7,9 +7,16 @@ from pyrogram import Client, filters
 from pyrogram.handlers import MessageHandler
 from pyrogram.types import Message as PyroMessage, ForumTopic
 
-from .database import get_session, init_db
-from .models import MessageContext
-from .utils import extract_context
+from telegram_agent.src.telegram.database import get_session, init_db
+from telegram_agent.src.models.models import MessageContext
+from telegram_agent.src.telegram.utils import extract_context, store_message
+
+# Logging -------------------------------------------------------------------------------------------------------------
+from telegram_agent.log.logger import get_logger
+
+logger = get_logger("TelegramBot")
+
+# Classes -------------------------------------------------------------------------------------------------------------
 
 
 class TelegramBot:
@@ -49,6 +56,7 @@ class TelegramBot:
         """
         self.client.run()
 
+    '''
     def message_handler(self, client: Client, message: PyroMessage):
         """
         Handles incoming messages.
@@ -57,13 +65,34 @@ class TelegramBot:
             client (Client): The Pyrogram client.
             message (PyroMessage): The received message.
         """
+        logger.info(f"Received message: \n\n{message}\n")
         context = extract_context(message)
-
+        logger.info(f"Extracted context: \n\n{context}\n")
         # Ensure asynchronous processing
         if asyncio.iscoroutinefunction(self.message_processor):
             asyncio.create_task(self.message_processor(client, context))
         else:
             self.message_processor(client, context)
+    '''
+
+    async def message_handler(self, client: Client, message: PyroMessage):
+        """
+        Handles incoming messages.
+
+        Args:
+            client (Client): The Pyrogram client.
+            message (PyroMessage): The received message.
+        """
+        context = extract_context(message)
+        logger.info(f"Extracted context: \n\n{context}\n")
+
+        # Ensure asynchronous processing
+        if asyncio.iscoroutinefunction(self.message_processor):
+            await self.message_processor(client, context)
+        else:
+            # Run synchronous message processor in an executor
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, self.message_processor, client, context)
 
     async def default_message_processor(self, client: Client, context: MessageContext):
         """
@@ -75,8 +104,7 @@ class TelegramBot:
         """
         # Store the message
         with self.session_factory() as session:
-            from .utils import store_message
-
+            # from .utils import store_message
             store_message(session, context)
 
         # Send a message in the appropriate context

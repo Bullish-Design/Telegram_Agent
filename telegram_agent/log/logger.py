@@ -1,6 +1,9 @@
 import os
 import logging
 from logging.handlers import RotatingFileHandler
+from datetime import datetime
+
+from pyrogram.methods.utilities import start
 
 # Import logdir:
 from telegram_agent.src.telegram.config import logdir
@@ -39,11 +42,12 @@ def get_logger(name, stream=False):
 
     # Add the handlers to the logger
     logger.addHandler(file_handler)
-
+    start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     for i in range(2):
         logger.info("")
+
     logger.info(
-        f"\n\n\n\n\n**************** {name} Logger initialized ****************\n\n\n\n"
+        f"\n\n\n\n\n**************** {name} Logger initialized @ {start_time} ****************\n\n\n\n"
     )
     logger.info("")
     return logger

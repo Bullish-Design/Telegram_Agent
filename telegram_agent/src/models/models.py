@@ -68,6 +68,7 @@ class Message(SQLModel, table=True):
     chat_type: Optional[str] = Field(default=None)
     chat_title: Optional[str] = Field(default=None)
     message_thread_id: Optional[int] = Field(default=None)
+    message_thread_name: Optional[str] = Field(default=None)
     date: datetime
     text: Optional[str]
 
@@ -83,6 +84,7 @@ class MessageContext(BaseModel):
         chat_type (Optional[str]): The type of the chat.
         chat_title (Optional[str]): The title of the chat.
         message_thread_id (Optional[int]): The forum topic ID if applicable.
+        message_thread_name (Optional[str]): The forum topic name if applicable.
         date (datetime): The date the message was sent.
         text (Optional[str]): The text content of the message.
         user (Optional[User]): The user object.
@@ -95,6 +97,7 @@ class MessageContext(BaseModel):
     chat_type: Optional[str]
     chat_title: Optional[str]
     message_thread_id: Optional[int]
+    message_thread_name: Optional[str]
     date: datetime
     text: Optional[str]
     user: Optional[User]

@@ -6,7 +6,14 @@ from pyrogram.enums import ChatType
 from pyrogram.types import Message as PyroMessage
 from sqlmodel import Session
 
-from .models import Chat, Message, MessageContext, User
+from telegram_agent.src.models.models import Chat, Message, MessageContext, User
+
+# Logging -------------------------------------------------------------------------------------------------------------
+from telegram_agent.log.logger import get_logger
+
+logger = get_logger("Bot_Utils")
+
+# Functions -----------------------------------------------------------------------------------------------------------
 
 
 def extract_context(message: PyroMessage) -> MessageContext:
@@ -19,6 +26,7 @@ def extract_context(message: PyroMessage) -> MessageContext:
     Returns:
         MessageContext: The extracted message context.
     """
+    logger.info(f"Extracting message context from:\n{message}\n\n")
     user = message.from_user
     chat = message.chat
 
@@ -62,6 +70,11 @@ def extract_context(message: PyroMessage) -> MessageContext:
         chat_title = None
 
     message_thread_id = message.message_thread_id  # Extract forum topic ID
+    message_thread_name = (
+        message.reply_to_message.forum_topic_created.title
+        if message.reply_to_message
+        else None
+    )
 
     return MessageContext(
         msg_id=message.id,
@@ -70,6 +83,7 @@ def extract_context(message: PyroMessage) -> MessageContext:
         chat_type=chat_type,
         chat_title=chat_title,
         message_thread_id=message_thread_id,
+        message_thread_name=message_thread_name,
         date=message.date,
         text=message.text,
         user=user_model,
@@ -111,6 +125,7 @@ def store_message(session: Session, context: MessageContext):
         chat_type=context.chat_type,
         chat_title=context.chat_title,
         message_thread_id=context.message_thread_id,
+        message_thread_name=context.message_thread_name,
         date=context.date,
         text=context.text,
     )

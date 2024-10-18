@@ -1,4 +1,5 @@
 # pipeline.py
+"""
 from typing import List
 from telegram_bot.src.models import MessageContext
 from pyrogram import Client
@@ -37,13 +38,13 @@ def chat_title_filter(title: str):
 def chat_type_filter(chat_type: str):
     return ChatFilter(lambda context: context.chat_type == chat_type)
 
-
+"""
 # pipeline.py
 
 from typing import List
-from .models import MessageContext
-from .filters import BaseFilter
-from .actions import BaseAction
+from telegram_agent.src.models.models import MessageContext
+from telegram_agent.src.pipeline.filters import BaseFilter
+from telegram_agent.src.pipeline.actions import BaseAction
 from pyrogram import Client
 
 

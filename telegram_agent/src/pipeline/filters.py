@@ -1,8 +1,8 @@
 # filters.py
 from typing import Callable
-from telegram_agent.src.models.models_base import MessageContext
+from telegram_agent.src.models.models import MessageContext
 
-
+"""
 class BaseFilter:
     def __call__(self, context: MessageContext) -> bool:
         raise NotImplementedError
@@ -38,6 +38,7 @@ def chat_attribute_filter(attribute: str, value):
 
 from typing import Callable
 from .models import MessageContext
+"""
 
 
 class BaseFilter:
