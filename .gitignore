@@ -29,6 +29,8 @@ log/**
 *code_output/*
 **/__pycache__/**
 **.pyc
+**.db
+
 # Devenv
 .devenv*
 devenv.local.nix

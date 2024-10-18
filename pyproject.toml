@@ -1,0 +1,9 @@
+[project]
+name = "TelegramBot"
+dynamic = ["version"]
+
+[project.scripts]
+init = "telegram_agent.src.telegram.base:init"
+run_bot = "telegram_agent.src.telegram.base:run_bot"
+
+

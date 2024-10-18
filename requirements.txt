@@ -7,11 +7,13 @@ pyaes==1.6.1
 pydantic==2.9.2
 pydantic-core==2.23.4
 pygments==2.18.0
-pyrogram==2.0.106
+pyrogram @ git+https://github.com/KurimuzonAkuma/pyrogram.git@b0653770dd77d74cf2b88bbe53889259283ec644
 pysocks==1.7.1
+python-dotenv==1.0.1
 rich==13.9.2
 shellingham==1.5.4
 sqlalchemy==2.0.36
 sqlmodel==0.0.22
+-e file:///home/andrew/Documents/Projects/Telegram_Agent
 typer==0.12.5
 typing-extensions==4.12.2

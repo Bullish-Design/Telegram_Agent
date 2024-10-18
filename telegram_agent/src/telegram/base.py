@@ -5,11 +5,18 @@ from typing import Optional
 from pyrogram import Client, filters
 from pyrogram.handlers import MessageHandler
 from pyrogram.types import Message as PyroMessage
+from pyrogram.enums import ChatType
+
+from sqlmodel import Field, SQLModel, Session, create_engine
 
 # Local Imports -------------------------------------------------------------------------------------------------------
-from code.src.telegram.config import API_ID, API_HASH, TELEGRAM_KEY
-from code.src.models.models_base import User, Chat, Message, MessageContext
+from telegram_agent.src.telegram.config import API_ID, API_HASH, BOT_TOKEN
+from telegram_agent.src.models.models_base import User, Chat, Message, MessageContext
 
+# Logging -------------------------------------------------------------------------------------------------------------
+from telegram_agent.log.logger import get_logger
+
+logger = get_logger("TelegramBot_Base")
 # Constants -----------------------------------------------------------------------------------------------------------
 
 
@@ -36,10 +43,12 @@ class TelegramBot:
         self.client.run()
 
     def message_handler(self, client: Client, message: PyroMessage):
+        logger.info(f"Received message: {message}")
         self.process_message(message)
 
     def process_message(self, message: PyroMessage):
         context = self.extract_context(message)
+        logger.info(f"Message context: {context}")
         self.store_message(context)
         # Example action: Echo the received message
         self.send_message(context, f"Echo: {context.text}")
@@ -47,7 +56,10 @@ class TelegramBot:
     def extract_context(self, message: PyroMessage) -> MessageContext:
         user = message.from_user
         chat = message.chat
-
+        logger.info(f"Message: \n\n\n{message}\n\n")
+        # logger.info(f"Thread ID: {message.message_thread_id}")
+        logger.info(f"Chat | Linked Chat: {chat} | {chat.linked_chat}")
+        logger.info(f"Linked Chat ID: {message.reply_to_message.forum_topic_created}")
         # Create User and Chat models from message data
         user_model = (
             User(
@@ -62,7 +74,7 @@ class TelegramBot:
 
         chat_model = Chat(
             id=chat.id,
-            type=chat.type,
+            type=chat.type.value if isinstance(chat.type, ChatType) else str(chat.type),
             title=chat.title,
             username=chat.username,
             first_name=chat.first_name,
@@ -70,7 +82,7 @@ class TelegramBot:
         )
 
         return MessageContext(
-            message_id=message.id,
+            msg_id=message.id,  # Changed from message_id to msg_id
             user_id=user.id if user else None,
             chat_id=chat.id,
             date=message.date,
@@ -102,7 +114,7 @@ class TelegramBot:
 
             # Store Message
             message = Message(
-                id=context.message_id,
+                msg_id=context.msg_id,
                 user_id=context.user_id,
                 chat_id=context.chat_id,
                 date=context.date,
@@ -120,13 +132,12 @@ class TelegramBot:
 
 # Scripts =------------------------------------------------------------------------------------------------------------
 def run_bot():
-    api_id = YOUR_API_ID  # Replace with your API ID
-    bot = TelegramBot(api_id, api_hash, bot_token)
+    bot = TelegramBot(api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
     bot.run()
 
 
 def init():
-    app = Client("Test_Bot", api_id=API_ID, api_hash=API_HASH)
+    app = Client("Test_Bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
     app.run()
 
 
