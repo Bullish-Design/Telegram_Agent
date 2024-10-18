@@ -126,6 +126,16 @@ class TelegramBot:
     def send_message(self, context: MessageContext, text: str):
         self.client.send_message(chat_id=context.chat_id, text=text)
 
+    """
+    def message_handler(self, client: Client, message: PyroMessage):
+        context = extract_context(message)
+        # Ensure asynchronous processing
+        if asyncio.iscoroutinefunction(self.message_processor):
+            asyncio.create_task(self.message_processor(client, context))
+        else:
+            self.message_processor(client, context)
+    """
+
 
 # Main ----------------------------------------------------------------------------------------------------------------
 
