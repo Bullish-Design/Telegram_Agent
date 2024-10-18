@@ -47,7 +47,9 @@ class TelegramBot:
             )
         else:
             self.client = Client("userbot", api_id=api_id, api_hash=api_hash)
-
+        logger.info(
+            f"Initialized Telegram bot with message processor: {message_processor}"
+        )
         self.client.add_handler(MessageHandler(self.message_handler, filters.all))
 
     def run(self):

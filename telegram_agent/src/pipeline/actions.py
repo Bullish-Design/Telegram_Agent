@@ -41,6 +41,17 @@ from typing import Any, Dict, List
 from telegram_agent.src.models.models import MessageContext
 from pyrogram import Client
 from pyrogram.errors import FloodWait, PeerFlood
+from pyrogram.raw import functions, types
+
+# Local imports -------------------------------------------------------------------------------------------------------
+from telegram_agent.src.telegram.config import TELEGRAM_BOT_ID, TELEGRAM_BOT_USERNAME
+
+# Logging -------------------------------------------------------------------------------------------------------------
+from telegram_agent.log.logger import get_logger
+
+logger = get_logger("ActionsLog")
+
+# Constants -----------------------------------------------------------------------------------------------------------
 
 
 class BaseAction:
@@ -130,33 +141,47 @@ class CreateChatAction(BaseAction):
             context (MessageContext): The message context.
         """
         # Create a new supergroup
-        result = await client.create_channel(
-            title=self.title, description="Created by bot", megagroup=True
+        result = await client.create_supergroup(
+            title=self.title,
+            description="Created by bot",
+            # megagroup=True,
         )
-
+        logger.info(f"Created channel: {result}")
         # Extract the chat ID
-        chat = result.chat
-        chat_id = chat.id
-
+        # chat = result.chat
+        chat_id = result.id
+        # chat_obj = client.resolve_peer(chat_id)
+        # logger.info(f"Chat Object: {chat_obj}")
         # Enable topics in the supergroup
         try:
-            await client.toggle_forum(chat_id=chat_id, is_forum=True)
+            # toggled_result = functions.channels.ToggleForum(
+            #    channel=chat_obj, enabled=True
+            # )
+            await client.toggle_forum_topics(chat_id=chat_id, enabled=True)
         except Exception as e:
             print(f"Failed to enable topics: {e}")
+        # logger.info(f"Enabled topics in channel: {toggled_result}")
 
         # Generate an invite link
         invite_link = await client.create_chat_invite_link(chat_id)
+        # Add the bot
+        logger.info(f"Adding bot to the chat: {TELEGRAM_BOT_USERNAME}")
+        try:
+            await client.add_chat_members(chat_id, user_ids=TELEGRAM_BOT_USERNAME)
+        except Exception as e:
+            print(f"Failed to add bot to the chat: {e}")
 
         # Create a new forum topic (thread)
         try:
             forum_topic = await client.create_forum_topic(
-                chat_id=chat_id, name=self.title
+                chat_id=chat_id, title="Config"
             )
+            logger.info(f"Created forum topic: {forum_topic}")
             # Send a welcome message in the new topic
             await client.send_message(
                 chat_id=chat_id,
-                text="Welcome to the new supergroup!",
-                message_thread_id=forum_topic.message_thread_id,
+                text=f"#Project_Template:{context.chat_title}",
+                message_thread_id=forum_topic.id,
             )
         except Exception as e:
             print(f"Failed to create forum topic: {e}")

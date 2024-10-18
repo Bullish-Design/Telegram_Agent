@@ -18,6 +18,9 @@ from telegram_agent.src.models.models import User, Chat, Message, MessageContext
 from telegram_agent.src.telegram.utils import extract_context
 from telegram_agent.src.telegram.database import get_session, init_db
 from telegram_agent.src.telegram.bot import TelegramBot
+from telegram_agent.src.models.message.message_base import (
+    new_idea_custom_message_processor,
+)
 
 # Logging -------------------------------------------------------------------------------------------------------------
 from telegram_agent.log.logger import get_logger
@@ -37,8 +40,18 @@ logger = get_logger("TelegramBot_Base")
 
 # Scripts =------------------------------------------------------------------------------------------------------------
 def run_bot():
-    bot = TelegramBot(api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-    bot.run()
+    bot = TelegramBot(
+        api_id=API_ID,
+        api_hash=API_HASH,
+        bot_token=BOT_TOKEN,
+        message_processor=new_idea_custom_message_processor,
+    )
+    userbot = TelegramBot(
+        api_id=API_ID,
+        api_hash=API_HASH,
+        message_processor=new_idea_custom_message_processor,
+    )
+    userbot.run()
 
 
 def init():

@@ -65,6 +65,12 @@ from telegram_agent.src.pipeline.actions import (
 )
 
 
+# Logging -------------------------------------------------------------------------------------------------------------
+from telegram_agent.log.logger import get_logger
+
+logger = get_logger("MessageProcessor")
+
+
 # Define constants (replace with actual values)
 ADMIN_CHAT_ID = 123456789  # Replace with your admin chat ID
 SPECIFIC_CHAT_ID = 987654321  # Replace with the target chat ID
@@ -129,19 +135,25 @@ async def new_idea_custom_message_processor(client: Client, context: MessageCont
         client (Client): The Pyrogram client.
         context (MessageContext): The message context.
     """
+    logger.info(f"Processing new idea message...\n\n{context}\n")
     # Store the message asynchronously
     loop = asyncio.get_running_loop()
     with get_session() as session:
         await loop.run_in_executor(None, store_message, session, context)
 
+    logger.info(
+        f"Context to check: \n    ChatID: {context.chat_id} == {IDEAS_SUPERGROUP_CHAT_ID}?\n       Type: {type(context.chat_id)} == {type(IDEAS_SUPERGROUP_CHAT_ID)}?\n    ThreadID: {context.message_thread_id} == {IDEA_LIST_THREAD_ID}?\n      Type: {type(context.message_thread_id)} == {type(IDEA_LIST_THREAD_ID)}?\n"
+    )
     # Define filters
     is_in_ideas_supergroup = ChatFilter(
-        lambda ctx: ctx.chat_id == IDEAS_SUPERGROUP_CHAT_ID
+        lambda ctx: str(ctx.chat_id) == str(IDEAS_SUPERGROUP_CHAT_ID)
     )
     is_in_idea_list_thread = MessageFilter(
-        lambda ctx: ctx.message_thread_id == IDEA_LIST_THREAD_ID
+        lambda ctx: str(ctx.message_thread_id) == str(IDEA_LIST_THREAD_ID)
     )
-
+    logger.info(
+        f"Checking filters:\n\n{is_in_ideas_supergroup(context)}\n\n{is_in_idea_list_thread(context)}\n"
+    )
     # Check if message meets filter criteria
     if is_in_ideas_supergroup(context) and is_in_idea_list_thread(context):
         # Define the action
@@ -149,6 +161,6 @@ async def new_idea_custom_message_processor(client: Client, context: MessageCont
             title=context.text or "New Supergroup",
             privacy="private",  # or 'public' if desired
         )
-
+        logger.info(f"Creating new chat: {context.text}")
         # Execute the action
         await create_chat_action.execute(client, context)
