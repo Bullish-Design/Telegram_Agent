@@ -7,7 +7,7 @@ pyaes==1.6.1
 pydantic==2.9.2
 pydantic-core==2.23.4
 pygments==2.18.0
-pyrogram @ git+https://github.com/KurimuzonAkuma/pyrogram.git@b0653770dd77d74cf2b88bbe53889259283ec644
+pyrogram @ git+https://github.com/KurimuzonAkuma/pyrogram.git@c5445324f712f2bf9942954e3a88b46bfb086efd
 pysocks==1.7.1
 python-dotenv==1.0.1
 rich==13.9.2
