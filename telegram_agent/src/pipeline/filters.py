@@ -1,5 +1,5 @@
 # filters.py
-from typing import Callable
+from typing import Callable, List
 from telegram_agent.src.models.models import MessageContext
 
 """
@@ -44,7 +44,13 @@ from .models import MessageContext
 class BaseFilter:
     """
     Abstract base class for filters.
+
+    Args:
+        name (str): The name of the filter.
     """
+
+    def __init__(self, name: str):
+        self.name = name
 
     def __call__(self, context: MessageContext) -> bool:
         raise NotImplementedError
@@ -55,10 +61,12 @@ class MessageFilter(BaseFilter):
     Filter based on message attributes.
 
     Args:
+        name (str): The name of the filter.
         condition (Callable[[MessageContext], bool]): The condition to evaluate.
     """
 
-    def __init__(self, condition: Callable[[MessageContext], bool]):
+    def __init__(self, name: str, condition: Callable[[MessageContext], bool]):
+        self.name = name
         self.condition = condition
 
     def __call__(self, context: MessageContext) -> bool:
@@ -79,10 +87,12 @@ class ChatFilter(BaseFilter):
     Filter based on chat attributes.
 
     Args:
+        name (str): The name of the filter.
         condition (Callable[[MessageContext], bool]): The condition to evaluate.
     """
 
-    def __init__(self, condition: Callable[[MessageContext], bool]):
+    def __init__(self, name: str, condition: Callable[[MessageContext], bool]):
+        self.name = name
         self.condition = condition
 
     def __call__(self, context: MessageContext) -> bool:
@@ -96,3 +106,24 @@ class ChatFilter(BaseFilter):
             bool: True if the condition is met, False otherwise.
         """
         return self.condition(context)
+
+
+class FilterGroup:
+    """
+    A container class for filters, allowing access via dot notation.
+
+    Args:
+        filters (List[BaseFilter]): A list of filter instances.
+    """
+
+    def __init__(self, filters: List[BaseFilter]):
+        self.filters = filters
+        for f in filters:
+            if hasattr(f, "name") and f.name:
+                if hasattr(self, f.name):
+                    raise ValueError(
+                        f"A filter with the name '{f.name}' already exists."
+                    )
+                setattr(self, f.name, f)
+            else:
+                raise ValueError("Each filter must have a 'name' attribute.")
