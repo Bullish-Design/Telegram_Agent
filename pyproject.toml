@@ -1,9 +1,14 @@
 [project]
 name = "TelegramBot"
-dynamic = ["dependencies", "version"]
+dynamic = ["version", "dependencies"]
 #dependencies = [
-#  {pyrogram = { git = "https://github.com/KurimuzonAkuma/pyrogram.git", rev = "c5445324f712f2bf9942954e3a88b46bfb086efd" }}
+#  "pyrogram @ git+https://github.com/KurimuzonAkuma/pyrogram.git@c5445324f712f2bf9942954e3a88b46bfb086efd",
 #]
+
+
+  
+
+
 
 
 [project.scripts]
