@@ -1,9 +1,14 @@
 [project]
 name = "TelegramBot"
-dynamic = ["version"]
+dynamic = ["dependencies", "version"]
 
 [project.scripts]
 init = "telegram_agent.src.telegram.base:init"
-run_bot = "telegram_agent.src.telegram.base:run_bot"
+bot = "telegram_agent.src.telegram.base:run_bot"
+userbot = "telegram_agent.src.telegram.base:run_userbot"
+
+[tool.setuptools.dynamic]
+dependencies = { file = "requirements.txt" }
+
 
 

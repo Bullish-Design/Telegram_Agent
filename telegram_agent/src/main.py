@@ -2,7 +2,7 @@
 
 
 # Local Imports -------------------------------------------------------------------------------------------------------
-from telegram_agent.src.telegram.base import init, run_bot
+from telegram_agent.src.telegram.base import init, run_bot, run_userbot
 
 # Functions -----------------------------------------------------------------------------------------------------------
 if __name__ == "__main__":

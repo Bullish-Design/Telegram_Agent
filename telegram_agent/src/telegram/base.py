@@ -46,6 +46,10 @@ def run_bot():
         bot_token=BOT_TOKEN,
         message_processor=new_idea_custom_message_processor,
     )
+    bot.run()
+
+
+def run_userbot():
     userbot = TelegramBot(
         api_id=API_ID,
         api_hash=API_HASH,

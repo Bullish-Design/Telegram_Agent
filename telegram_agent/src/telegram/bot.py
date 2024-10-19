@@ -87,7 +87,7 @@ class TelegramBot:
         """
         context = extract_context(message)
         logger.info(f"Extracted context: \n\n{context}\n")
-
+        print(f"\nReceived message: {context.text}\n")
         # Ensure asynchronous processing
         if asyncio.iscoroutinefunction(self.message_processor):
             await self.message_processor(client, context)
