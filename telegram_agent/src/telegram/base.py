@@ -61,6 +61,18 @@ idea_init_decorator = idea_init_decorator
 # Classes -------------------------------------------------------------------------------------------------------------
 
 
+# Idea init:
+@idea_init_decorator
+class IdeaInitBot(TelegramBot):
+    pass
+
+
+# Scaffold Bot:
+@scaffold_decorator
+class ScaffoldBot(TelegramBot):
+    pass
+
+
 # Main ----------------------------------------------------------------------------------------------------------------
 
 
@@ -72,7 +84,10 @@ def run_bot():
     #    bot_token=BOT_TOKEN,
     #    message_processor=new_idea_custom_message_processor,
     # )
-    bot.run()
+
+    scaffold_bot = ScaffoldBot(api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+
+    scaffold_bot.run()
 
 
 def run_userbot():
@@ -81,7 +96,10 @@ def run_userbot():
     #    api_hash=API_HASH,
     #    message_processor=new_idea_custom_message_processor,
     # )
-    userbot.run()
+
+    idea_bot = IdeaInitBot(api_id=API_ID, api_hash=API_HASH)
+
+    idea_bot.run()
 
 
 def init():
