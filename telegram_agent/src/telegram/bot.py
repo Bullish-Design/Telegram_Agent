@@ -136,19 +136,28 @@ class TelegramBot:
         api_hash: str,
         bot_token: Optional[str] = None,
         message_processor: Optional[Callable[[Client, MessageContext], None]] = None,
+        bot_name: Optional[str] = None,
     ):
         init_db()
         self.session_factory = get_session
         self.message_processor = message_processor or self.default_message_processor
         # self.logger = get_logger(self.__class__.__name__)
         if bot_token:
+            if bot_name:
+                self.bot_name = bot_name
+            else:
+                self.bot_name = "bot"
             self.client = Client(
-                "bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token
+                self.bot_name, api_id=api_id, api_hash=api_hash, bot_token=bot_token
             )
             self.client.add_handler(MessageHandler(self.message_handler, filters.all))
             # self.init_bot()
         else:
-            self.client = Client("userbot", api_id=api_id, api_hash=api_hash)
+            if bot_name:
+                self.bot_name = bot_name
+            else:
+                self.bot_name = "userbot"
+            self.client = Client(self.bot_name, api_id=api_id, api_hash=api_hash)
             self.client.add_handler(MessageHandler(self.message_handler, filters.all))
 
         self.logger = get_logger(self.client.name)

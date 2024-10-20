@@ -1,6 +1,6 @@
 # actions.py
 import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union, Callable
 from telegram_agent.src.models.models import MessageContext
 from pyrogram import Client
 from pyrogram.errors import FloodWait, PeerFlood
@@ -19,6 +19,22 @@ logger = get_logger("ActionsLog")
 # Constants -----------------------------------------------------------------------------------------------------------
 
 
+# Function ------------------------------------------------------------------------------------------------------------
+def wrap_input(input_str: str, wrap_char: str = "`") -> str:
+    """
+    Wrap a string with a specified character.
+    Args:
+        input_str (str): The input string.
+        wrap_char (str): The character to wrap the string with.
+    Returns:
+        str: The wrapped string.
+    """
+    return f"{wrap_char}{input_str}{wrap_char}"
+
+
+# Classes -------------------------------------------------------------------------------------------------------------
+
+
 class BaseAction:
     """
     Abstract base class for actions.
@@ -26,6 +42,67 @@ class BaseAction:
 
     async def execute(self, client: Client, context: MessageContext):
         raise NotImplementedError
+
+
+class FunctionAction(BaseAction):
+    """
+    Action that executes a provided function with message text and chat ID,
+    then replies to the message with the function's output.
+
+    Args:
+        func (Callable[[Optional[str], int], Any]):
+            A coroutine function that takes message text and chat ID as arguments and returns a response string.
+    """
+
+    def __init__(self, function: Callable[[Optional[str], int], Any]):
+        if not callable(function):
+            raise ValueError("func must be a callable")
+        self.function = function
+
+    async def execute(self, client: Client, context: MessageContext):
+        """
+        Executes the provided function with the message text and chat ID,
+        then sends the result as a reply to the original message.
+
+        Args:
+            client (Client): The Pyrogram client.
+            context (MessageContext): The message context.
+        """
+        message_text = context.text
+        chat_id = context.chat_id
+        msg_id = context.msg_id
+
+        logger.info(
+            f"Executing function with chat_id={chat_id} and message_text='{message_text}'"
+        )
+
+        try:
+            # Check if the function is a coroutine
+            if asyncio.iscoroutinefunction(self.func):
+                result = await self.func(message_text, chat_id)
+            else:
+                result = self.func(message_text, chat_id)
+
+            if not isinstance(result, str):
+                logger.warning(
+                    "Function did not return a string. Converting to string."
+                )
+                result = str(result)
+
+            logger.info(f"Function executed successfully. Sending reply.")
+            await client.send_message(
+                chat_id=chat_id,
+                text=result,
+                reply_to_message_id=msg_id,
+                disable_web_page_preview=True,  # Optional: Customize as needed
+            )
+        except Exception as e:
+            logger.error(f"Error executing FunctionAction: {e}")
+            await client.send_message(
+                chat_id=chat_id,
+                text="An error occurred while processing your request.",
+                reply_to_message_id=msg_id,
+            )
 
 
 class SendMessageAction(BaseAction):
@@ -202,6 +279,7 @@ class CreateSupergroupAction(BaseAction):
             title=self.title,
             description="Created by bot",
         )
+        asyncio.sleep(2)
         logger.info(f"Created supergroup: {result}")
         chat_id = result.id
 
@@ -211,6 +289,9 @@ class CreateSupergroupAction(BaseAction):
             logger.info(f"Enabled topics in supergroup: {chat_id}")
         except Exception as e:
             logger.error(f"Failed to enable topics: {e}")
+
+        asyncio.sleep(2)
+
         permissions_result = await client.set_chat_permissions(
             chat_id,
             ChatPermissions(
@@ -231,6 +312,7 @@ class CreateSupergroupAction(BaseAction):
                     chat_id, user_ids=self.bot_username
                 )
                 logger.info(f"Result of adding a bot to chat => {mem_result}")
+                asyncio.sleep(2)
                 promo_res = await client.promote_chat_member(
                     chat_id,
                     user_id=self.bot_username,
@@ -253,31 +335,7 @@ class CreateSupergroupAction(BaseAction):
             logger.warning(
                 "Bot username not provided, skipping adding bot to the chat."
             )
-        sleep(3)
-        # Create a new forum topic (thread)
-        try:
-            forum_topic = await client.create_forum_topic(
-                chat_id=chat_id, title="Config"
-            )
-            logger.info(f"Created forum topic: {forum_topic}")
-            # Send a welcome message in the new topic
-            # await client.send_message(
-            #    chat_id=chat_id,
-            #    text=f"#InitSupergroup",
-            #    message_thread_id=forum_topic.id,
-            # )
-        except Exception as e:
-            logger.error(f"Failed to create forum topic: {e}")
-
-        # Post initialization message in the new supergroup
-        try:
-            await client.send_message(
-                chat_id=chat_id,
-                text=f"#InitSupergroup",
-                # message_thread_id=forum_topic.id,
-            )
-        except Exception as e:
-            logger.error(f"Failed to send initialization message: {e}")
+        asyncio.sleep(2)
         # Reply to the user's message with the invite link
         try:
             await client.send_message(
@@ -325,6 +383,7 @@ class CreateForumTopicAction(BaseAction):
         # logger.info(member)
         # chat_rights =
         # Create a new forum topic (thread)
+        asyncio.sleep(2)
         try:
             forum_topic = await client.create_forum_topic(
                 chat_id=chat_id, title=self.title

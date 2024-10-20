@@ -30,6 +30,7 @@ from telegram_agent.src.pipeline.models.project_scaffold import (
     scaffold_decorator,
     idea_init_decorator,
 )
+from telegram_agent.src.pipeline.models.project_concept import wrap_message_decorator
 
 # Logging -------------------------------------------------------------------------------------------------------------
 from telegram_agent.log.logger import get_logger
@@ -51,6 +52,7 @@ userbot = TelegramBot(
 
 scaffold_decorator = scaffold_decorator
 idea_init_decorator = idea_init_decorator
+wrap_message_decorator = wrap_message_decorator
 
 
 # Functions -----------------------------------------------------------------------------------------------------------
@@ -78,6 +80,11 @@ class IdeaInitBot(TelegramBot): ...
 # Scaffold Bot:
 @scaffold_decorator
 class ScaffoldBot(TelegramBot): ...
+
+
+# Wrap Message Bot
+@wrap_message_decorator
+class ConceptBot(TelegramBot): ...
 
 
 # Main ----------------------------------------------------------------------------------------------------------------
@@ -116,10 +123,25 @@ def run_userbot():
 
 
 async def composed_bots():
-    scaffold_bot = ScaffoldBot(api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-    idea_bot = IdeaInitBot(api_id=API_ID, api_hash=API_HASH)
+    scaffold_bot = ScaffoldBot(
+        api_id=API_ID,
+        api_hash=API_HASH,
+        bot_token=BOT_TOKEN,
+        bot_name="ScaffoldBot",
+    )
+    idea_bot = IdeaInitBot(
+        api_id=API_ID,
+        api_hash=API_HASH,
+        bot_name="IdeaBot",
+    )
+    concepting_bot = ConceptBot(
+        api_id=API_ID,
+        api_hash=API_HASH,
+        bot_token=BOT_TOKEN,
+        bot_name="ConceptBot",
+    )
 
-    bot_list = [scaffold_bot, idea_bot]
+    bot_list = [scaffold_bot, idea_bot, concepting_bot]
     await compose(bot_list)
 
 

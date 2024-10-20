@@ -4,6 +4,8 @@ from telegram_agent.src.pipeline.actions import (
     ForwardMessageAction,
     CreateSupergroupAction,
     CreateForumTopicAction,
+    FunctionAction,
+    wrap_input,
 )
 from telegram_agent.src.pipeline.pipeline_base import Pipeline, PipelineStep
 from telegram_agent.src.pipeline.filters import MessageFilter, ChatFilter, FilterGroup
@@ -42,4 +44,6 @@ __all__ = [
     "FilterGroup",
     "MessageProcessorDecorator",
     "TELEGRAM_BOT_USERNAME",
+    "FunctionAction",
+    "wrap_input",
 ]
