@@ -4,7 +4,9 @@ from typing import Any, Dict, List, Optional
 from telegram_agent.src.models.models import MessageContext
 from pyrogram import Client
 from pyrogram.errors import FloodWait, PeerFlood
+from pyrogram.types import ChatPermissions, ChatPrivileges
 from pyrogram.raw import functions, types
+from time import sleep
 
 # Local imports -------------------------------------------------------------------------------------------------------
 from telegram_agent.src.telegram.config import TELEGRAM_BOT_ID, TELEGRAM_BOT_USERNAME
@@ -174,7 +176,10 @@ class CreateSupergroupAction(BaseAction):
     """
 
     def __init__(
-        self, title: str, privacy: str = "private", bot_username: Optional[str] = None
+        self,
+        title: Optional[str] = None,
+        privacy: Optional[str] = "private",
+        bot_username: Optional[str] = None,
     ):
         self.title = title
         self.privacy = privacy
@@ -188,6 +193,9 @@ class CreateSupergroupAction(BaseAction):
             client (Client): The Pyrogram client.
             context (MessageContext): The message context.
         """
+        logger.info(f"Creating new Supergroup from context: {context}")
+        if self.title is None:
+            self.title = context.text or "New Supergroup"
         print(f"\nCreating new Supergroup: {self.title}\n")
         # Create a new supergroup
         result = await client.create_supergroup(
@@ -200,9 +208,18 @@ class CreateSupergroupAction(BaseAction):
         # Enable topics in the supergroup
         try:
             await client.toggle_forum_topics(chat_id=chat_id, enabled=True)
+            logger.info(f"Enabled topics in supergroup: {chat_id}")
         except Exception as e:
             logger.error(f"Failed to enable topics: {e}")
-
+        permissions_result = await client.set_chat_permissions(
+            chat_id,
+            ChatPermissions(
+                can_send_messages=True,
+                can_send_media_messages=True,
+                can_manage_topics=True,
+            ),
+        )
+        logger.info(f"New Permissions: {permissions_result}")
         # Generate an invite link
         invite_link = await client.create_chat_invite_link(chat_id)
 
@@ -210,14 +227,33 @@ class CreateSupergroupAction(BaseAction):
         if self.bot_username:
             logger.info(f"Adding bot to the chat: {self.bot_username}")
             try:
-                await client.add_chat_members(chat_id, user_ids=self.bot_username)
+                mem_result = await client.add_chat_members(
+                    chat_id, user_ids=self.bot_username
+                )
+                logger.info(f"Result of adding a bot to chat => {mem_result}")
+                promo_res = await client.promote_chat_member(
+                    chat_id,
+                    user_id=self.bot_username,
+                    privileges=ChatPrivileges(
+                        can_delete_messages=True,
+                        can_restrict_members=True,
+                        # can_send_other_messages=True,
+                        # can_add_web_page_previews=True,
+                        can_manage_topics=True,
+                        can_post_messages=True,
+                        can_edit_messages=True,
+                        can_pin_messages=True,
+                        can_edit_stories=True,
+                    ),
+                )
+                logger.info(f"Result of bot promo => {promo_res}")
             except Exception as e:
                 logger.error(f"Failed to add bot to the chat: {e}")
         else:
             logger.warning(
                 "Bot username not provided, skipping adding bot to the chat."
             )
-
+        sleep(3)
         # Create a new forum topic (thread)
         try:
             forum_topic = await client.create_forum_topic(
@@ -225,14 +261,23 @@ class CreateSupergroupAction(BaseAction):
             )
             logger.info(f"Created forum topic: {forum_topic}")
             # Send a welcome message in the new topic
-            await client.send_message(
-                chat_id=chat_id,
-                text=f"#Project_Template:{context.chat_title}",
-                message_thread_id=forum_topic.id,
-            )
+            # await client.send_message(
+            #    chat_id=chat_id,
+            #    text=f"#InitSupergroup",
+            #    message_thread_id=forum_topic.id,
+            # )
         except Exception as e:
             logger.error(f"Failed to create forum topic: {e}")
 
+        # Post initialization message in the new supergroup
+        try:
+            await client.send_message(
+                chat_id=chat_id,
+                text=f"#InitSupergroup",
+                # message_thread_id=forum_topic.id,
+            )
+        except Exception as e:
+            logger.error(f"Failed to send initialization message: {e}")
         # Reply to the user's message with the invite link
         try:
             await client.send_message(
@@ -273,7 +318,12 @@ class CreateForumTopicAction(BaseAction):
             chat_id = self.group_id
         else:
             chat_id = context.chat_id
-        print(f"\nCreating new Forum Topic: {self.title}\n")
+        print(
+            f"\nCreating new Forum Topic: {self.title}"
+        )  # " with chatID: {chat_id}\n")
+        # member = await client.get_chat_member(chat_id, "me")
+        # logger.info(member)
+        # chat_rights =
         # Create a new forum topic (thread)
         try:
             forum_topic = await client.create_forum_topic(
@@ -281,10 +331,10 @@ class CreateForumTopicAction(BaseAction):
             )
             logger.info(f"Created forum topic: {forum_topic}")
             # Send a welcome message in the new topic
-            await client.send_message(
-                chat_id=chat_id,
-                text=f"#InitialPost",
-                message_thread_id=forum_topic.id,
-            )
+            # await client.send_message(
+            #    chat_id=chat_id,
+            #    text=f"#InitSupergroup",
+            #    message_thread_id=forum_topic.id,
+            # )
         except Exception as e:
             logger.error(f"Failed to create forum topic: {e}")

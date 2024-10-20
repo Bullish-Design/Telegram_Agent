@@ -15,7 +15,7 @@ dynamic = ["version", "dependencies"]
 init = "telegram_agent.src.telegram.base:init"
 bot = "telegram_agent.src.telegram.base:run_bot"
 userbot = "telegram_agent.src.telegram.base:run_userbot"
-
+main = "telegram_agent.src.telegram.base:main"
 
 [tool.setuptools.dynamic]
 dependencies = { file = "requirements.txt" }

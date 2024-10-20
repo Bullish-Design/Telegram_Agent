@@ -46,6 +46,9 @@ from telegram_agent.src.models.models import MessageContext
 from telegram_agent.src.pipeline.filters import BaseFilter
 from telegram_agent.src.pipeline.actions import BaseAction
 from pyrogram import Client
+from telegram_agent.log.logger import get_logger
+
+logger = get_logger("Pipeline")
 
 
 class PipelineStep:
@@ -69,9 +72,18 @@ class PipelineStep:
             client (Client): The Pyrogram client.
             context (MessageContext): The message context.
         """
+        logger.info(
+            f"Processing Pipeline Step. Context:\n\n{context}\n\n     Filters:\n"
+        )
+        for f in self.filters:
+            logger.info(f"    Filter: {f.name}")
+            # logger.info(f"    Condition: {f.condition}")
+            logger.info(f"    Result: {f(context)}\n")
+
         # Evaluate all filters
         if all(f(context) for f in self.filters):
             # Execute all actions
+
             for action in self.actions:
                 await action.execute(client, context)
 
@@ -96,4 +108,6 @@ class Pipeline:
             context (MessageContext): The message context.
         """
         for step in self.steps:
+            # step_result = await step.process(client, context)
+            # logger.info(f"Pipeline Step Result: {step_result}")
             await step.process(client, context)

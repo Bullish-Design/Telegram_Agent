@@ -12,10 +12,13 @@ from telegram_agent.src.pipeline.models._imports import (
     FilterGroup,
     SendMessageAction,
     ForwardMessageAction,
-    CreateChatAction,
+    # CreateChatAction,
     CreateForumTopicAction,
     CreateSupergroupAction,
     MessageProcessorDecorator,
+    IDEAS_SUPERGROUP_CHAT_ID,
+    IDEA_LIST_THREAD_ID,
+    TELEGRAM_BOT_USERNAME,
 )
 
 # Logger --------------------------------------------------------------------------------------------------------------
@@ -64,19 +67,20 @@ filters_list = [
         name="is_supergroup", condition=lambda ctx: ctx.chat_type == "supergroup"
     ),
     ChatFilter(
-        name="is_idea", condition=lambda ctx: ctx.chat_id == IDEAS_SUPERGROUP_CHAT_ID
+        name="is_idea", condition=lambda ctx: ctx.message_thread_name == "Idea List"
     ),
     MessageFilter(
         name="contains_init_keyword",
-        condition=lambda ctx: "#InitialPost" in (ctx.text or "").lower(),
+        condition=lambda ctx: "initsupergroup" in (ctx.text or "").lower(),
     ),
     MessageFilter(
         name="contains_urgent",
         condition=lambda ctx: "urgent" in (ctx.text or "").lower(),
     ),
-    MessageFilter(
-        name="from_specific_user", condition=lambda ctx: ctx.user_id == ADMIN_CHAT_ID
-    ),
+    ChatFilter(name="not_idea", condition=lambda ctx: ctx.chat.title != "Ideas"),
+    # MessageFilter(
+    #    name="from_specific_user", condition=lambda ctx: ctx.user_id == ADMIN_CHAT_ID
+    # ),
 ]
 
 filters = FilterGroup(filters_list)
@@ -88,44 +92,44 @@ send_greeting = SendMessageAction(
     text="Hello! How can I assist you?",
     message_thread_id=None,
 )
-notify_admin = SendMessageAction(
-    chat_id=ADMIN_CHAT_ID,
-    text=None,
-)
-forward_to_specific_chat = ForwardMessageAction(
-    from_chat_id=None,
-    to_chat_id=SPECIFIC_CHAT_ID,
-    message_id=None,
-)
-create_chat_action = CreateChatAction(
-    title=None,  # Will be set dynamically
-    privacy="private",
-)
-create_new_topic = CreateForumTopicAction(
-    title="Brainstorming",
-)
-
+# notify_admin = SendMessageAction(
+#    chat_id=ADMIN_CHAT_ID,
+#    text=None,
+# )
+# forward_to_specific_chat = ForwardMessageAction(
+#    from_chat_id=None,
+#    to_chat_id=SPECIFIC_CHAT_ID,
+#    message_id=None,
+# )
+# create_chat_action = CreateChatAction(
+#    title=None,  # Will be set dynamically
+#    privacy="private",
+# )
+create_new_topic = CreateForumTopicAction(title="Brainstorming")
+create_idea_supergroup = CreateSupergroupAction(bot_username=TELEGRAM_BOT_USERNAME)
 scaffold_actions_list = generate_topics_scaffold(forum_topics)
 
 # Pipeline Steps ------------------------------------------------------------------------------------------------------
 # Define pipeline steps
 pipeline_steps = [
     PipelineStep(
-        filters=[filters.is_private_chat, filters.contains_keyword],
+        filters=[filters.is_private_chat, filters.contains_init_keyword],
         actions=[send_greeting],
     ),
-    PipelineStep(filters=[filters.is_supergroup], actions=[notify_admin]),
-    PipelineStep(filters=[filters.contains_urgent], actions=[forward_to_specific_chat]),
-    # Add a new step using CreateChatAction
-    PipelineStep(filters=[filters.contains_keyword], actions=[create_chat_action]),
 ]
 
 project_scaffold_pipeline = [
-    PipelineStep(filters=[filters.is_idea], actions=scaffold_actions_list)
+    PipelineStep(
+        filters=[filters.contains_init_keyword],
+        actions=scaffold_actions_list,
+    )
 ]
 
 idea_init_pipeline = [
-    PipelineStep(filters=[filters.contains_init_keyword], actions=[create_new_topic])
+    PipelineStep(
+        filters=[filters.is_idea],
+        actions=[create_idea_supergroup],
+    )
 ]
 
 

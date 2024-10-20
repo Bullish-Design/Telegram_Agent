@@ -2,6 +2,10 @@
 from typing import Callable, List
 from telegram_agent.src.models.models import MessageContext
 
+from telegram_agent.log.logger import get_logger
+
+logger = get_logger("Filters")
+
 """
 class BaseFilter:
     def __call__(self, context: MessageContext) -> bool:
@@ -94,6 +98,8 @@ class ChatFilter(BaseFilter):
     def __init__(self, name: str, condition: Callable[[MessageContext], bool]):
         self.name = name
         self.condition = condition
+        logger.info(f"Initialized ChatFilter: {self.name}")
+        logger.info(f"            Condition: {self.condition}")
 
     def __call__(self, context: MessageContext) -> bool:
         """
@@ -105,6 +111,8 @@ class ChatFilter(BaseFilter):
         Returns:
             bool: True if the condition is met, False otherwise.
         """
+        logger.info(f"ChatFilter: {self.name}")
+        logger.info(f"ChatFilter: {self.condition}")
         return self.condition(context)
 
 

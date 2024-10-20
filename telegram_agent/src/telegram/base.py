@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 import asyncio
 from typing import Callable, Optional
-from pyrogram import Client, filters
+from pyrogram import Client, filters, compose
 from pyrogram.handlers import MessageHandler
 from pyrogram.types import Message as PyroMessage
 from pyrogram.enums import ChatType
@@ -17,14 +17,14 @@ from telegram_agent.src.telegram.config import API_ID, API_HASH, BOT_TOKEN
 from telegram_agent.src.models.models import User, Chat, Message, MessageContext
 from telegram_agent.src.telegram.utils import extract_context, store_message
 from telegram_agent.src.telegram.database import get_session, init_db
-from telegram_agent.src.telegram.bot import TelegramBot
+from telegram_agent.src.telegram.bot import TelegramBot, Dispatcher, SimpleTelegramBot
 from telegram_agent.src.models.message.message_base import (
     new_idea_custom_message_processor,
 )
 from telegram_agent.src.pipeline.actions import (
     SendMessageAction,
     ForwardMessageAction,
-    CreateChatAction,
+    # CreateChatAction,
 )
 from telegram_agent.src.pipeline.models.project_scaffold import (
     scaffold_decorator,
@@ -52,7 +52,16 @@ userbot = TelegramBot(
 scaffold_decorator = scaffold_decorator
 idea_init_decorator = idea_init_decorator
 
+
 # Functions -----------------------------------------------------------------------------------------------------------
+def run_bots(bots, interval=60):
+    try:
+        while True:
+            for bot in bots:
+                bot.run()
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        print("Bot execution stopped.")
 
 
 # Filters -------------------------------------------------------------------------------------------------------------
@@ -63,20 +72,24 @@ idea_init_decorator = idea_init_decorator
 
 # Idea init:
 @idea_init_decorator
-class IdeaInitBot(TelegramBot):
-    pass
+class IdeaInitBot(TelegramBot): ...
 
 
 # Scaffold Bot:
 @scaffold_decorator
-class ScaffoldBot(TelegramBot):
-    pass
+class ScaffoldBot(TelegramBot): ...
 
 
 # Main ----------------------------------------------------------------------------------------------------------------
 
 
 # Scripts =------------------------------------------------------------------------------------------------------------
+def simple_bots():
+    bot = SimpleTelegramBot()
+
+    run_bots([bot])
+
+
 def run_bot():
     # bot = TelegramBot(
     #    api_id=API_ID,
@@ -100,6 +113,31 @@ def run_userbot():
     idea_bot = IdeaInitBot(api_id=API_ID, api_hash=API_HASH)
 
     idea_bot.run()
+
+
+async def composed_bots():
+    scaffold_bot = ScaffoldBot(api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+    idea_bot = IdeaInitBot(api_id=API_ID, api_hash=API_HASH)
+
+    bot_list = [scaffold_bot, idea_bot]
+    await compose(bot_list)
+
+
+async def dispatch_bot():
+    idea_bot = IdeaInitBot(api_id=API_ID, api_hash=API_HASH)
+    scaffold_bot = ScaffoldBot(api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+
+    dispatcher = Dispatcher(api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+
+    dispatcher.register_bot(idea_bot)
+    dispatcher.register_bot(scaffold_bot)
+
+    await dispatcher.start()
+
+
+def main():
+    # asyncio.run(dispatch_bot())
+    asyncio.run(composed_bots())
 
 
 def init():

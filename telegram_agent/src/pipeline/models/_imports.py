@@ -10,7 +10,14 @@ from telegram_agent.src.pipeline.filters import MessageFilter, ChatFilter, Filte
 from telegram_agent.src.pipeline.wrapper import MessageProcessorDecorator
 
 # Constants -----------------------------------------------------------------------------------------------------------
-from telegram_agent.src.telegram.config import API_ID, API_HASH, BOT_TOKEN
+from telegram_agent.src.telegram.config import (
+    API_ID,
+    API_HASH,
+    BOT_TOKEN,
+    IDEAS_SUPERGROUP_CHAT_ID,
+    IDEA_LIST_THREAD_ID,
+    TELEGRAM_BOT_USERNAME,
+)
 
 
 # Logger --------------------------------------------------------------------------------------------------------------
@@ -34,4 +41,5 @@ __all__ = [
     "get_logger",
     "FilterGroup",
     "MessageProcessorDecorator",
+    "TELEGRAM_BOT_USERNAME",
 ]

@@ -27,6 +27,11 @@ def extract_context(message: PyroMessage) -> MessageContext:
         MessageContext: The extracted message context.
     """
     logger.info(f"Extracting message context from:\n{message}\n\n")
+    print(f"\nExtracting message context...")
+    # print(f"    Service Type: {message.reply_to_message.reply_to_message.service}")
+    # if message.outgoing:
+    #    return
+    # print(f"Extracting message context from: \n\n{message}\n")
     user = message.from_user
     chat = message.chat
 
@@ -69,12 +74,21 @@ def extract_context(message: PyroMessage) -> MessageContext:
         chat_type = None
         chat_title = None
 
-    message_thread_id = message.message_thread_id  # Extract forum topic ID
-    message_thread_name = (
-        message.reply_to_message.forum_topic_created.title
-        if message.reply_to_message
-        else None
-    )
+    if message.reply_to_message is not None:
+        print(f"Message Thread ID: {message.message_thread_id}")
+        message_thread_id = message.message_thread_id  # Extract forum topic ID
+        # print(
+        #    f"Message Thread Name: \n{message.reply_to_message.reply_to_message.forum_topic_created}\n"
+        # )
+
+        message_thread_name = (
+            message.reply_to_message.forum_topic_created.title
+            if message.reply_to_message.forum_topic_created
+            else None
+        )
+    else:
+        message_thread_name = None
+        message_thread_id = None
 
     return MessageContext(
         msg_id=message.id,
