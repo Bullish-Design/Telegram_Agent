@@ -1,5 +1,5 @@
 # Imports -------------------------------------------------------------------------------------------------------------
-
+import asyncio
 from telegram_agent.src.models.models import User, Chat, Message, MessageContext
 from telegram_agent.src.telegram.database import get_session, init_db
 from telegram_agent.src.telegram.utils import extract_context, store_message
@@ -66,7 +66,9 @@ class MessageProcessorDecorator:
             # Update dynamic fields in actions
             logger.debug("Updating dynamic fields in actions.")
             for step in self.pipeline_steps:
+                await asyncio.sleep(0.5)
                 for action in step.actions:
+                    await asyncio.sleep(0.5)
                     if isinstance(action, SendMessageAction):
                         logger.info(f"Processing SendMessageAction: {action}")
                         # Set dynamic chat_id and message_thread_id

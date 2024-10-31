@@ -279,7 +279,7 @@ class CreateSupergroupAction(BaseAction):
             title=self.title,
             description="Created by bot",
         )
-        asyncio.sleep(2)
+        sleep(0.5)
         logger.info(f"Created supergroup: {result}")
         chat_id = result.id
 
@@ -290,7 +290,7 @@ class CreateSupergroupAction(BaseAction):
         except Exception as e:
             logger.error(f"Failed to enable topics: {e}")
 
-        asyncio.sleep(2)
+        sleep(0.5)
 
         permissions_result = await client.set_chat_permissions(
             chat_id,
@@ -312,7 +312,7 @@ class CreateSupergroupAction(BaseAction):
                     chat_id, user_ids=self.bot_username
                 )
                 logger.info(f"Result of adding a bot to chat => {mem_result}")
-                asyncio.sleep(2)
+                await asyncio.sleep(2)
                 promo_res = await client.promote_chat_member(
                     chat_id,
                     user_id=self.bot_username,
@@ -335,7 +335,22 @@ class CreateSupergroupAction(BaseAction):
             logger.warning(
                 "Bot username not provided, skipping adding bot to the chat."
             )
-        asyncio.sleep(2)
+        sleep(0.5)
+        # Create a new forum topic (thread)
+        try:
+            forum_topic = await client.create_forum_topic(
+                chat_id=chat_id, title="Config"
+            )
+            logger.info(f"Created forum topic: {forum_topic}")
+            # Send a welcome message in the new topic
+            await client.send_message(
+                chat_id=chat_id,
+                text=f"#InitSupergroup",
+                message_thread_id=forum_topic.id,
+            )
+        except Exception as e:
+            logger.error(f"Failed to create forum topic: {e}")
+        sleep(0.5)
         # Reply to the user's message with the invite link
         try:
             await client.send_message(
@@ -383,7 +398,7 @@ class CreateForumTopicAction(BaseAction):
         # logger.info(member)
         # chat_rights =
         # Create a new forum topic (thread)
-        asyncio.sleep(2)
+        sleep(1)
         try:
             forum_topic = await client.create_forum_topic(
                 chat_id=chat_id, title=self.title

@@ -28,16 +28,16 @@ logger = get_logger("Project_Scaffold")
 
 # Scaffold Topics:
 forum_topics = [
-    "Brainstorming",
-    "Concept",
-    "Goal",
+    "References",
+    "Issues",
     "MVP",
-    "Structure",
     "Features",
     "Requirements",
-    "References",
+    "Structure",
     "Overview",
-    "Issues",
+    "Goal",
+    "Concept",
+    "Brainstorming",
 ]
 
 # Functions -----------------------------------------------------------------------------------------------------------
