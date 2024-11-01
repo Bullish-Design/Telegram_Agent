@@ -75,6 +75,7 @@ def extract_context(message: PyroMessage) -> MessageContext:
         chat_title = None
 
     if message.reply_to_message is not None:
+        logger.info(f"Reply to message exists")
         print(f"Message Thread ID: {message.message_thread_id}")
         message_thread_id = message.message_thread_id  # Extract forum topic ID
         # print(
@@ -86,7 +87,12 @@ def extract_context(message: PyroMessage) -> MessageContext:
             if message.reply_to_message.forum_topic_created
             else None
         )
+    elif message.topic is not None:
+        logger.info(f"Message.topic exists")
+        message_thread_name = message.topic.title
+        message_thread_id = message.topic.id
     else:
+        logger.info(f"No message thread name/id")
         message_thread_name = None
         message_thread_id = None
 

@@ -30,7 +30,10 @@ from telegram_agent.src.pipeline.models.project_scaffold import (
     scaffold_decorator,
     idea_init_decorator,
 )
-from telegram_agent.src.pipeline.models.project_concept import wrap_message_decorator
+from telegram_agent.src.pipeline.models.project_concept import (
+    wrap_message_decorator,
+    brainstorming_decorator,
+)
 
 # Logging -------------------------------------------------------------------------------------------------------------
 from telegram_agent.log.logger import get_logger
@@ -53,6 +56,7 @@ userbot = TelegramBot(
 scaffold_decorator = scaffold_decorator
 idea_init_decorator = idea_init_decorator
 wrap_message_decorator = wrap_message_decorator
+brainstorming_decorator = brainstorming_decorator
 
 
 # Functions -----------------------------------------------------------------------------------------------------------
@@ -83,7 +87,7 @@ class ScaffoldBot(TelegramBot): ...
 
 
 # Wrap Message Bot
-@wrap_message_decorator
+@brainstorming_decorator
 class ConceptBot(TelegramBot): ...
 
 

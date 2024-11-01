@@ -83,6 +83,8 @@ class MessageFilter(BaseFilter):
         Returns:
             bool: True if the condition is met, False otherwise.
         """
+        logger.info(f"MessageFilter: {self.name}")
+        logger.info(f"       Result: {self.condition(context)}")
         return self.condition(context)
 
 
@@ -112,7 +114,7 @@ class ChatFilter(BaseFilter):
             bool: True if the condition is met, False otherwise.
         """
         logger.info(f"ChatFilter: {self.name}")
-        logger.info(f"ChatFilter: {self.condition}")
+        logger.info(f"    Result: {self.condition(context)}")
         return self.condition(context)
 
 

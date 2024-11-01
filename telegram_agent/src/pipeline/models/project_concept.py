@@ -31,6 +31,10 @@ logger = get_logger("Project_Concept")
 # Functions -----------------------------------------------------------------------------------------------------------
 
 
+# Get all topic chats:
+def get_topic_chats(chat_id: int, thread_id: int): ...
+
+
 # Filters -------------------------------------------------------------------------------------------------------------
 filters_list = [
     ChatFilter(
@@ -58,6 +62,10 @@ filters_list = [
         condition=lambda ctx: "urgent" in (ctx.text or "").lower(),
     ),
     ChatFilter(name="not_idea", condition=lambda ctx: ctx.chat.title != "Ideas"),
+    ChatFilter(
+        name="brainstorming",
+        condition=lambda ctx: ctx.message_thread_name == "Brainstorming",
+    ),
     # MessageFilter(
     #    name="from_specific_user", condition=lambda ctx: ctx.user_id == ADMIN_CHAT_ID
     # ),
@@ -68,10 +76,11 @@ filters = FilterGroup(filters_list)
 
 # Actions -------------------------------------------------------------------------------------------------------------
 send_greeting = SendMessageAction(
-    chat_id=None,
+    chat_id=lambda ctx: ctx.chat_id,
     text="Hello! How can I assist you?",
-    message_thread_id=None,
+    message_thread_id=lambda ctx: ctx.message_thread_id,
 )
+
 
 wrap_message = FunctionAction(
     function=lambda ctx: wrap_input(ctx.text),
@@ -84,8 +93,17 @@ wrap_message_pipeline = [
     )
 ]
 
+test_brainstorm_reply_pipeline = [
+    PipelineStep(
+        filters=[filters.brainstorming],
+        actions=[send_greeting],
+    )
+]
+
 # Classes -------------------------------------------------------------------------------------------------------------
 wrap_message_decorator = MessageProcessorDecorator(pipeline_steps=wrap_message_pipeline)
-
+brainstorming_decorator = MessageProcessorDecorator(
+    pipeline_steps=test_brainstorm_reply_pipeline
+)
 
 # Misc ----------------------------------------------------------------------------------------------------------------

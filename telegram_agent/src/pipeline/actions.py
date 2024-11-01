@@ -115,9 +115,12 @@ class SendMessageAction(BaseAction):
         kwargs (Dict[str, Any]): Additional keyword arguments for send_message.
     """
 
-    def __init__(self, chat_id: int, text: str, **kwargs):
+    def __init__(
+        self, chat_id: int, text: str, message_thread_id: Optional[int], **kwargs
+    ):
         self.chat_id = chat_id
         self.text = text
+        self.message_thread_id = message_thread_id
         self.kwargs = kwargs
 
     async def execute(self, client: Client, context: MessageContext):
@@ -128,7 +131,22 @@ class SendMessageAction(BaseAction):
             client (Client): The Pyrogram client.
             context (MessageContext): The message context.
         """
-        await client.send_message(chat_id=self.chat_id, text=self.text, **self.kwargs)
+        logger.info(
+            f"Sending message to chatID: {self.chat_id} | {self.text} | {self.message_thread_id}"
+        )
+        if self.message_thread_id:
+            await client.send_message(
+                chat_id=self.chat_id,
+                text=self.text,
+                message_thread_id=self.message_thread_id,
+                **self.kwargs,
+            )
+        else:
+            await client.send_message(
+                chat_id=self.chat_id,
+                text=self.text,
+                **self.kwargs,
+            )
 
 
 class ForwardMessageAction(BaseAction):
@@ -412,3 +430,7 @@ class CreateForumTopicAction(BaseAction):
             # )
         except Exception as e:
             logger.error(f"Failed to create forum topic: {e}")
+
+
+class ReturnTopicChats(BaseAction):
+    pass
