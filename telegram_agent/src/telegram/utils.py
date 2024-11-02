@@ -16,7 +16,7 @@ logger = get_logger("Bot_Utils")
 # Functions -----------------------------------------------------------------------------------------------------------
 
 
-def extract_context(message: PyroMessage) -> MessageContext:
+async def extract_context(message: PyroMessage) -> MessageContext:
     """
     Extracts context from a Pyrogram message object.
 
