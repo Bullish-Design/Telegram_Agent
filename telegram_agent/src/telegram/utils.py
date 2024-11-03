@@ -27,7 +27,7 @@ async def extract_context(message: PyroMessage) -> MessageContext:
         MessageContext: The extracted message context.
     """
     logger.info(f"Extracting message context from:\n{message}\n\n")
-    print(f"\nExtracting message context...")
+    # print(f"\nExtracting message context...")
     # print(f"    Service Type: {message.reply_to_message.reply_to_message.service}")
     # if message.outgoing:
     #    return
@@ -109,6 +109,41 @@ async def extract_context(message: PyroMessage) -> MessageContext:
         user=user_model,
         chat=chat_model,
     )
+
+
+def build_message_context_from_db(session: Session, message: Message) -> MessageContext:
+    """
+    Builds a MessageContext instance from a Message instance by fetching related User and Chat objects.
+
+    Args:
+        session (Session): The database session.
+        message (Message): The message instance from the database.
+
+    Returns:
+        MessageContext: The constructed MessageContext instance.
+    """
+    # Fetch the User object if user_id exists
+    user = session.get(User, message.user_id) if message.user_id else None
+
+    # Fetch the Chat object if chat_id exists
+    chat = session.get(Chat, message.chat_id) if message.chat_id else None
+
+    # Construct the MessageContext
+    context = MessageContext(
+        msg_id=message.msg_id,
+        user_id=message.user_id,
+        chat_id=message.chat_id,
+        chat_type=message.chat_type,
+        chat_title=message.chat_title,
+        message_thread_id=message.message_thread_id,
+        message_thread_name=message.message_thread_name,
+        date=message.date,
+        text=message.text,
+        user=user,
+        chat=chat,
+    )
+
+    return context
 
 
 def store_message(session: Session, context: MessageContext):

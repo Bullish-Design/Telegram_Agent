@@ -8,6 +8,7 @@ from pyrogram import Client, filters, compose
 from pyrogram.handlers import MessageHandler
 from pyrogram.types import Message as PyroMessage
 from pyrogram.enums import ChatType
+import pprint
 
 from sqlmodel import Field, SQLModel, Session, create_engine
 
@@ -35,7 +36,8 @@ from telegram_agent.src.pipeline.models.project_concept import (
     wrap_message_decorator,
     brainstorming_decorator,
 )
-from telegram_agent.src.llm.llm_base import TelegramLLMBase
+from telegram_agent.src.llm.llm_base import TelegramLLMBase, LLMbot, LLMconfig
+from telegram_agent.src.telegram.chat.chat_base import ChatContext, TopicContext
 
 
 # Logging -------------------------------------------------------------------------------------------------------------
@@ -187,20 +189,45 @@ def init():
 
     """)
 
+    init_db()
+    session = get_session()
+
     @bot.on_message()
     async def thread_response(client, message):
-        await topic_bot.init_topic(message)
-        sleep(1)
-        await topic_bot.generate_chat_response(message)
+        parsed_msg = await extract_context(message)
+        store_message(session, parsed_msg)
+        print(f"\n\n>>> Message:\n")  # "{parsed_msg}\n\n")
+        pprint.pp(parsed_msg)
+        print(f"\n>>> Chat:\n")
+        pprint.pp(parsed_msg.chat)
+        print(f"\n>>> User:\n")
+        pprint.pp(parsed_msg.user)
+        print(f"\n\n")
+        if parsed_msg.message_thread_name:
+            print(
+                f"\n>>> Found message in thread {parsed_msg.message_thread_name}: id={parsed_msg.message_thread_id}\n\n"
+            )
+            chat_context = TopicContext(
+                message_thread_id=parsed_msg.message_thread_id,
+                chat_id=parsed_msg.chat_id,
+                session=session,
+            )
+        else:
+            chat_context = ChatContext(
+                chat_id=parsed_msg.chat_id,
+                session=session,
+            )
+        print(f"\n>>> Chat Context: {type(chat_context)}\n\n{chat_context}\n\n")
+        await chat_context.refresh_messages_to_db(
+            client=topic_bot.user_tg_client, chat_id=parsed_msg.chat_id, session=session
+        )
 
-        # parsed_msg = await topic_bot.parse_message(message)
-        # message_list = await topic_bot.get_all_messages()
-        # joined_msg = "\n\n".join(message_list)
-        # for msg in message_list:
-        #    print(f"\n{msg}\n")
-        # matched_message = await topic_bot.get_message_match("[Goal]")
-        # print(f"\n\n\nMatched Message: \n\n{matched_message}\n\n\n")
-        # await topic_bot.post_message(joined_msg)
+        history_list = chat_context.get_history()
+        # for msg in history_list:
+        #    print(f"\n{msg.message_thread_name} | {msg.user_id}  | {msg.text}\n")
+        llm_init = LLMconfig()
+        llm_init_msg = llm_init.init_llm(topic_context=chat_context)
+        print(f"\n\n\nLLM Obj:\n\n{llm_init_msg}\n\n\n")
 
     async def get_thread_messages(message_id, topic_id):
         message_list = []

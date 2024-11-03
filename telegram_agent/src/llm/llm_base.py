@@ -1,20 +1,27 @@
 # Imports -------------------------------------------------------------------------------------------------------------
-from pydantic import BaseModel
-from typing import Any, Optional, List, Dict
+from pydantic import BaseModel, PrivateAttr
+from typing import Any, Optional, List, Dict, Union
 from openai import OpenAI
 from mirascope.core import openai, prompt_template
 from pyrogram import Client
 from pyrogram.enums import ChatType
 from pyrogram.types import Message as PyroMessage
 from sqlmodel import Session
+import pprint
 
 from time import sleep
 
 # Library Imports -----------------------------------------------------------------------------------------------------
 from telegram_agent.src.config import openai_api_key
-from telegram_agent.src.telegram.utils import extract_context, store_message
+from telegram_agent.src.telegram.utils import (
+    extract_context,
+    store_message,
+    build_message_context_from_db,
+)
 from telegram_agent.log.logger import get_logger
 from telegram_agent.src.models.models import User, Chat, Message, MessageContext
+from telegram_agent.src.telegram.chat.chat_base import ChatContext, TopicContext
+from telegram_agent.src.telegram.database import get_session, init_db
 
 # LLM Client ----------------------------------------------------------------------------------------------------------
 
@@ -56,6 +63,121 @@ def chat_response(combined_prompt: str, context: str, message: str) -> str: ...
 
 
 # Classes -------------------------------------------------------------------------------------------------------------
+
+
+# LLM Config
+class LLMconfig(BaseModel):
+    goal: Optional[str] = None
+    prompt: Optional[str] = None
+    history: Optional[str] = None
+
+    def init_llm(self, topic_context: TopicContext):
+        prompt_text = ""
+        goal = topic_context.get_configuration_messages("Goal", all=True)
+
+        print(f"\nGoal:\n")
+        for g in goal:
+            print(f"\n{g.text}\n")
+            self.goal = g.text
+            prompt_text += g.text
+        prompt = topic_context.get_configuration_messages("Prompt")
+        for p in prompt:
+            print(f"\n{p.text}\n")
+            self.prompt = p.text
+            prompt_text += p.text
+        history_text = ""
+        history_list = topic_context.get_history()
+        session = get_session()
+
+        for msg in history_list:
+            msg_context = build_message_context_from_db(session, msg)
+            print(
+                f"{msg_context.user.username or msg_context.user.first_name}: {msg_context.text}\n"
+            )
+        return prompt_text
+
+
+# LLM Bot:
+class LLMbot(BaseModel):
+    context: Union[ChatContext, TopicContext]
+    _system_prompt: str = PrivateAttr()
+    _user_prompt: str = PrivateAttr()
+    _chat_history: List[Message] = PrivateAttr()
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    def __init__(self, context: Union[ChatContext, TopicContext], **data):
+        super().__init__(context=context, **data)
+        self._system_prompt = ""
+        self._user_prompt = ""
+        self._chat_history = []
+        self._build_prompts()
+        self._build_chat_history()
+
+    def _build_prompts(self):
+        """
+        Builds the system and user prompts by searching for configuration messages.
+        """
+        # Search for system prompt messages
+        system_prompt_messages = self.context.get_configuration_messages(
+            "SYSTEM_PROMPT"
+        )
+        if system_prompt_messages:
+            # Assuming the last configuration message is the most recent
+            self._system_prompt = (
+                system_prompt_messages[-1].text.split("]", 1)[1].strip()
+            )
+        else:
+            self._system_prompt = (
+                "You are a helpful assistant."  # default system prompt
+            )
+
+        # Search for user prompt messages
+        user_prompt_messages = self.context.get_configuration_messages("USER_PROMPT")
+        if user_prompt_messages:
+            self._user_prompt = user_prompt_messages[-1].text.split("]", 1)[1].strip()
+        else:
+            self._user_prompt = ""  # default empty user prompt
+
+    def _build_chat_history(self):
+        """
+        Builds the chat history from the context messages.
+        """
+        if isinstance(self.context, TopicContext):
+            self._chat_history = self.context.get_topic_history()
+        else:
+            self._chat_history = self.context.get_chat_history()
+
+    def get_response(self):
+        """
+        Interacts with the LLM API to get a response based on the prompts and chat history.
+        """
+        # Prepare the chat messages for the LLM API
+        history_text = "\n".join(
+            [
+                f"User: {msg.text}"
+                if msg.user_id != "bot_id"
+                else f"Assistant: {msg.text}"
+                for msg in self._chat_history
+                if msg.text
+            ]
+        )
+
+        full_prompt = f"{self._system_prompt}\n{history_text}\nUser: {self._user_prompt}\nAssistant:"
+
+        # Interact with LLM API
+        response = openai.Completion.create(
+            engine="text-davinci-003",
+            prompt=full_prompt,
+            max_tokens=150,
+            temperature=0.7,
+            n=1,
+            stop=None,
+        )
+
+        answer = response.choices[0].text.strip()
+        return answer
 
 
 # LLM Chatbot Base:
