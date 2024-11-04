@@ -71,6 +71,7 @@ class Message(SQLModel, table=True):
     message_thread_name: Optional[str] = Field(default=None)
     date: datetime
     text: Optional[str]
+    deleted: bool = Field(default=False)
 
 
 class MessageContext(BaseModel):
@@ -102,3 +103,4 @@ class MessageContext(BaseModel):
     text: Optional[str]
     user: Optional[User]
     chat: Optional[Chat]
+    deleted: bool = False

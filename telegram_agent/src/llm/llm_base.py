@@ -46,7 +46,8 @@ logger = get_logger("TelegramLLMBase")
 @openai.call("gpt-4o-mini")
 @prompt_template("""{combined_prompt}
 
-Here's what's been discussed thus far: {context}
+Here's what's been discussed thus far: 
+{context}
 
 USER:
 Please use the context of the conversation thus far to help meet the system prompt goals, in accordance to the user's latest message: 
@@ -75,14 +76,14 @@ class LLMconfig(BaseModel):
         prompt_text = ""
         goal = topic_context.get_configuration_messages("Goal", all=True)
 
-        print(f"\nGoal:\n")
+        # print(f"\nGoal:\n")
         for g in goal:
-            print(f"\n{g.text}\n")
+            # print(f"\nGoal: {g.text}")
             self.goal = g.text
             prompt_text += g.text
         prompt = topic_context.get_configuration_messages("Prompt")
         for p in prompt:
-            print(f"\n{p.text}\n")
+            # print(f"\nPrompt: {p.text}")
             self.prompt = p.text
             prompt_text += p.text
         history_text = ""
@@ -91,10 +92,23 @@ class LLMconfig(BaseModel):
 
         for msg in history_list:
             msg_context = build_message_context_from_db(session, msg)
-            print(
-                f"{msg_context.user.username or msg_context.user.first_name}: {msg_context.text}\n"
-            )
+            history_text += f"\n{msg_context.user.username or msg_context.user.first_name}: {msg_context.text}\n"
+        self.history = history_text
+
         return prompt_text
+
+    def ask(self, message: PyroMessage):
+        if not self.goal:
+            print(f"\n\nERROR: No Project Goal. Exiting")
+            return
+        prompt_text = self.goal + "\n\n" + self.prompt + "\n\n"
+        print(
+            f"\nPrompt:\n{prompt_text}\n\nHistory:\n{self.history}\n\nMessage:\n{message.text}\n\n"
+        )
+        response = chat_response(prompt_text, self.history, message.text)
+        # print(f"\nResponse:\n\n{response}\n\n")
+        # await message.reply_text(response)
+        return response
 
 
 # LLM Bot:

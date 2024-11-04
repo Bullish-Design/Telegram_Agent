@@ -148,11 +148,7 @@ def build_message_context_from_db(session: Session, message: Message) -> Message
 
 def store_message(session: Session, context: MessageContext):
     """
-    Stores a message and its context into the database.
-
-    Args:
-        session (Session): The database session.
-        context (MessageContext): The message context to store.
+    Stores or updates a message and its context into the database.
     """
     # Upsert User
     if context.user:
@@ -163,7 +159,7 @@ def store_message(session: Session, context: MessageContext):
             for field in context.user.__fields_set__:
                 setattr(user, field, getattr(context.user, field))
 
-    # Upsert Chat if available
+    # Upsert Chat
     if context.chat and context.chat_id:
         chat = session.get(Chat, context.chat.id)
         if not chat:
@@ -172,17 +168,47 @@ def store_message(session: Session, context: MessageContext):
             for field in context.chat.__fields_set__:
                 setattr(chat, field, getattr(context.chat, field))
 
-    # Store Message
-    message = Message(
-        msg_id=context.msg_id,
-        user_id=context.user_id,
-        chat_id=context.chat_id,
-        chat_type=context.chat_type,
-        chat_title=context.chat_title,
-        message_thread_id=context.message_thread_id,
-        message_thread_name=context.message_thread_name,
-        date=context.date,
-        text=context.text,
+    # Upsert Message
+    existing_message = (
+        session.query(Message)
+        .filter(Message.msg_id == context.msg_id, Message.chat_id == context.chat_id)
+        .first()
     )
-    session.add(message)
+
+    if not existing_message:
+        # Message doesn't exist, so add it
+        message = Message(
+            msg_id=context.msg_id,
+            user_id=context.user_id,
+            chat_id=context.chat_id,
+            chat_type=context.chat_type,
+            chat_title=context.chat_title,
+            message_thread_id=context.message_thread_id,
+            message_thread_name=context.message_thread_name,
+            date=context.date,
+            text=context.text,
+            deleted=context.deleted,
+        )
+        session.add(message)
+    else:
+        # Message exists, update fields if necessary
+        needs_update = False
+        fields_to_compare = [
+            "user_id",
+            "chat_type",
+            "chat_title",
+            "message_thread_id",
+            "message_thread_name",
+            "date",
+            "text",
+            "deleted",
+        ]
+        for field in fields_to_compare:
+            db_value = getattr(existing_message, field)
+            new_value = getattr(context, field)
+            if db_value != new_value:
+                setattr(existing_message, field, new_value)
+                needs_update = True
+        if needs_update:
+            session.add(existing_message)
     session.commit()

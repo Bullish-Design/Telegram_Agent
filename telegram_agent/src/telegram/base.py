@@ -17,7 +17,11 @@ from telegram_agent.src.telegram.config import API_ID, API_HASH, BOT_TOKEN
 
 # from telegram_agent.src.models.models_base import User, Chat, Message, MessageContext
 from telegram_agent.src.models.models import User, Chat, Message, MessageContext
-from telegram_agent.src.telegram.utils import extract_context, store_message
+from telegram_agent.src.telegram.utils import (
+    extract_context,
+    store_message,
+    build_message_context_from_db,
+)
 from telegram_agent.src.telegram.database import get_session, init_db
 from telegram_agent.src.telegram.bot import TelegramBot, Dispatcher, SimpleTelegramBot
 from telegram_agent.src.models.message.message_base import (
@@ -171,6 +175,24 @@ def main():
     asyncio.run(composed_bots())
 
 
+def get_chat_context(session, parsed_msg):
+    if parsed_msg.message_thread_name:
+        # print(
+        #    f"\n>>> Found message in thread {parsed_msg.message_thread_name}: id={parsed_msg.message_thread_id}\n\n"
+        # )
+        chat_context = TopicContext(
+            message_thread_id=parsed_msg.message_thread_id,
+            chat_id=parsed_msg.chat_id,
+            session=session,
+        )
+    else:
+        chat_context = ChatContext(
+            chat_id=parsed_msg.chat_id,
+            session=session,
+        )
+    return chat_context
+
+
 def init():
     bot = Client("Test_Bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
     app = Client("UserBot", api_id=API_ID, api_hash=API_HASH)
@@ -192,10 +214,13 @@ def init():
     init_db()
     session = get_session()
 
-    @bot.on_message()
+    @bot.on_message(group=2)
     async def thread_response(client, message):
-        parsed_msg = await extract_context(message)
-        store_message(session, parsed_msg)
+        parsed_msg, chat_context = await get_msg_and_context(session, message)
+
+        print(
+            f"\n---------------------------------------- Thread Response -------------------------------------------------"
+        )
         print(f"\n\n>>> Message:\n")  # "{parsed_msg}\n\n")
         pprint.pp(parsed_msg)
         print(f"\n>>> Chat:\n")
@@ -203,24 +228,6 @@ def init():
         print(f"\n>>> User:\n")
         pprint.pp(parsed_msg.user)
         print(f"\n\n")
-        if parsed_msg.message_thread_name:
-            print(
-                f"\n>>> Found message in thread {parsed_msg.message_thread_name}: id={parsed_msg.message_thread_id}\n\n"
-            )
-            chat_context = TopicContext(
-                message_thread_id=parsed_msg.message_thread_id,
-                chat_id=parsed_msg.chat_id,
-                session=session,
-            )
-        else:
-            chat_context = ChatContext(
-                chat_id=parsed_msg.chat_id,
-                session=session,
-            )
-        print(f"\n>>> Chat Context: {type(chat_context)}\n\n{chat_context}\n\n")
-        await chat_context.refresh_messages_to_db(
-            client=topic_bot.user_tg_client, chat_id=parsed_msg.chat_id, session=session
-        )
 
         history_list = chat_context.get_history()
         # for msg in history_list:
@@ -228,6 +235,62 @@ def init():
         llm_init = LLMconfig()
         llm_init_msg = llm_init.init_llm(topic_context=chat_context)
         print(f"\n\n\nLLM Obj:\n\n{llm_init_msg}\n\n\n")
+
+    @bot.on_message(filters.command("refreshdb"))  # , group=1)
+    async def refreshdb(client, message):
+        print(
+            f"\n ---------------------------------------------- RefreshDB ---------------------------------------------------"
+        )
+        parsed_msg, chat_context = await get_msg_and_context(session, message)
+
+        await chat_context.refresh_messages_to_db(
+            client=topic_bot.user_tg_client, chat_id=parsed_msg.chat_id, session=session
+        )
+        print(f"    **Done with Refresh**")
+        message.stop_propagation()
+
+    @bot.on_message(filters.command("summary"))  # , group=1)
+    async def summary(client, message):
+        print(
+            f"\n---------------------------------------- Summary Response -------------------------------------------------"
+        )
+        parsed_msg, chat_context = await get_msg_and_context(session, message)
+        history_list = chat_context.get_history()
+        history_text = ""
+        for msg in history_list:
+            msg_context = build_message_context_from_db(session, msg)
+            history_text += f"{msg_context.user.username or msg_context.user.first_name}: {msg_context.text}\n"
+        print(f"\n\n{history_text}\n\n")
+        await message.reply_text(history_text)
+        message.stop_propagation()
+
+    @bot.on_message(filters.command("ask"))
+    async def ask(client, message):
+        print(
+            f"\n---------------------------------------- Ask -------------------------------------------------------"
+        )
+        await refresh_database(session, message)
+        parsed_msg, chat_context = await get_msg_and_context(session, message)
+
+        llm_init = LLMconfig()
+        llm_init_msg = llm_init.init_llm(topic_context=chat_context)
+        response = llm_init.ask(message)
+        print(f"\n  >>> Returned Response: \n\n{response}\n\n")
+        await topic_bot.bot_tg_client.send_message(
+            chat_id=parsed_msg.chat_id,
+            message_thread_id=parsed_msg.message_thread_id,
+            text=response,
+        )
+
+        # await message.reply_text(response)
+        message.stop_propagation()
+
+    async def get_msg_and_context(session, message):
+        parsed_msg = await extract_context(message)
+        store_message(session, parsed_msg)
+
+        chat_context = get_chat_context(session=session, parsed_msg=parsed_msg)
+        return parsed_msg, chat_context
 
     async def get_thread_messages(message_id, topic_id):
         message_list = []
@@ -238,6 +301,16 @@ def init():
             else:
                 print(f"\n\n\n\n\n{msg}\n\n\n\n\n\n")
         return message_list
+
+    async def refresh_database(session, message):
+        parsed_msg, chat_context = await get_msg_and_context(session, message)
+
+        await chat_context.refresh_messages_to_db(
+            client=topic_bot.user_tg_client,
+            chat_id=parsed_msg.chat_id,
+            session=session,
+            all=True,
+        )
 
     asyncio.run(compose([bot, app]))
     # app.run()
