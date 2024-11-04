@@ -31,6 +31,8 @@ from telegram_agent.src.pipeline.actions import (
     SendMessageAction,
     ForwardMessageAction,
     # CreateChatAction,
+    create_supergroup,
+    init_supergroup_topics,
 )
 from telegram_agent.src.pipeline.models.project_scaffold import (
     scaffold_decorator,
@@ -211,6 +213,20 @@ def init():
 
     """)
 
+    test_dict = {
+        "Goal": "[Goal]",
+        "Brainstorming": "[Prompt] Please help the user with brainstorming for the project goal.",
+        "References": "[Prompt] The following posts could be useful reference information for this project. Please analyze the contents of the post and describe if/how it would be useful.",
+        "Overview": "[Prompt] The following overview posts serve as a summary and 'How to' guide the user will follow to accomplish the project goal.",
+        "Research": "[Prompt] The following posts describe topics of research related to the project."
+    }
+    code_project_dict = {
+        "Features": "[Prompt] Please help the user define the features needed for a software product which will accomplish the desired project goal.",
+        "Structure": "[Prompt] Please help the user determine the best directory structure for the software project. Think of the software features, and then provide the directory tree of folders and subfolders, as well as the files inside of each folder and subfolder."
+        "Requirements": "[Prompt] Please help the user create a set of requirements for the code project that when successfully completed, will meet the project goal.",
+        "MVP": "[Prompt] Please help the user determine a Minimum Viable Product that, when successfully implemented, will successfully demonstrate all the necessary requirements for the project goal."
+    }
+    idea_list_topic_int = 4
     init_db()
     session = get_session()
 
@@ -235,6 +251,30 @@ def init():
         llm_init = LLMconfig()
         llm_init_msg = llm_init.init_llm(topic_context=chat_context)
         print(f"\n\n\nLLM Obj:\n\n{llm_init_msg}\n\n\n")
+
+    @bot.on_message(filters.chat(-1002407722343) & filters.topic(idea_list_topic_int))
+    async def init_supergroup(client, message):
+        print(f"**Creating Supergroup**")
+        parsed_msg, chat_context = await get_msg_and_context(session, message)
+        new_group = await create_supergroup(
+            topic_bot.user_tg_client, parsed_msg.text, "Project"
+        )
+        logger.info(f"Created new Supergroup: {new_group}")
+        message.stop_propagation()
+
+    @bot.on_message(filters.reply)
+    async def update_response(client, message):
+        pass
+
+    @bot.on_message(filters.regex("InitSupergroup"))
+    async def populate_supergroup(client, message):
+        print(f"**Populating Supergroup**")
+        parsed_msg, chat_context = await get_msg_and_context(session, message)
+        await init_supergroup_topics(
+            topic_bot.bot_tg_client, parsed_msg.chat_id, test_dict
+        )
+        print(f"   Supergroup Populated.")
+        message.stop_propagation()
 
     @bot.on_message(filters.command("refreshdb"))  # , group=1)
     async def refreshdb(client, message):

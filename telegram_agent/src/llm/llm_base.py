@@ -63,6 +63,25 @@ Please use the context of the conversation thus far to help meet the system prom
 def chat_response(combined_prompt: str, context: str, message: str) -> str: ...
 
 
+# Rework existing response:
+@openai.call("gpt-4o-mini")
+@prompt_template("""{combined_prompt}
+
+Here's what's been discussed thus far: 
+{context}
+
+USER:
+Please update the previous response, in accordance to the user's latest message. Be sure to return the **ENTIRE** response, with updates included, in its entirety.
+
+Previous Response: {previous_response}
+
+User Message: {user_message}
+""")
+def rework_response(
+    combined_prompt: str, context: str, previous_response: str, user_message: str
+): ...
+
+
 # Classes -------------------------------------------------------------------------------------------------------------
 
 
@@ -109,6 +128,9 @@ class LLMconfig(BaseModel):
         # print(f"\nResponse:\n\n{response}\n\n")
         # await message.reply_text(response)
         return response
+
+    def update(self, message: PyroMessage):
+        pass
 
 
 # LLM Bot:
