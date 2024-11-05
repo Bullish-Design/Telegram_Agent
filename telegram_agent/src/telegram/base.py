@@ -6,14 +6,20 @@ from time import sleep
 from typing import Callable, Optional
 from pyrogram import Client, filters, compose
 from pyrogram.handlers import MessageHandler
-from pyrogram.types import Message as PyroMessage
-from pyrogram.enums import ChatType
+from pyrogram.types import Message as PyroMessage, Folder
+from pyrogram.enums import ChatType, FolderColor
+from pyrogram.raw import functions
 import pprint
 
 from sqlmodel import Field, SQLModel, Session, create_engine
 
 # Local Imports -------------------------------------------------------------------------------------------------------
-from telegram_agent.src.telegram.config import API_ID, API_HASH, BOT_TOKEN
+from telegram_agent.src.telegram.config import (
+    API_ID,
+    API_HASH,
+    BOT_TOKEN,
+    TELEGRAM_BOT_USERNAME,
+)
 
 # from telegram_agent.src.models.models_base import User, Chat, Message, MessageContext
 from telegram_agent.src.models.models import User, Chat, Message, MessageContext
@@ -244,8 +250,26 @@ def init():
         print(f"\n\n>>> Raw Message:")
         logger.info(f"Raw message:\n\n{message}\n")
         chat_obj = await topic_bot.user_tg_client.get_folders(3)
+
+        # for k, v in folder_id_dict.items():
+        #    chat_obj = await topic_bot.user_tg_client.update_folder(
+        #        folder_id=v, title=k.title(), included_chats=TELEGRAM_BOT_USERNAME
+        #    )
+        #    logger.info(f"Folder {k.title()}: result = \n{chat_obj}")
+        # response = await topic_bot.user_tg_client.invoke(
+        #    functions.messages.GetDialogFilters()
+        # )
         logger.info(f"Chat Deets:\n\n{chat_obj}\n\n")
-        # logger.info(f"FolderID: {chat_obj.folder_id}")
+
+        count = 0
+        # try:
+        #    yield await chat_obj
+        # except:
+        #    logger.info("didn't work")
+        # for item in chat_obj:
+        #    count += 1
+        #    logger.info(f"------- Dialog Iterator {count}:\n{Folder(**item)}\n")
+        #    # logger.info(f"FolderID: {chat_obj.folder_id}")
         print(f"\n\n>>> Parsed Message:\n")  # "{parsed_msg}\n\n")
         pprint.pp(parsed_msg)
         print(f"\n>>> Chat:\n")
